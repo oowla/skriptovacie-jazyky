@@ -75,3 +75,110 @@ function toggleFavorite(button) {
 }
 
 window.onload = renderProducts;
+
+document.addEventListener('DOMContentLoaded', () => {
+    
+    const dropdownToggle = document.getElementById('categoriesToggle');
+    const dropdownMenu = document.getElementById('categoriesMenu');
+
+    if (dropdownToggle && dropdownMenu) {
+        dropdownToggle.addEventListener('click', function(event) {
+            event.preventDefault();
+            dropdownMenu.classList.toggle('show');
+        });
+
+        document.addEventListener('click', function(event) {
+            const isClickInside = dropdownToggle.contains(event.target) || dropdownMenu.contains(event.target);
+            
+            if (!isClickInside) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+    }
+
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const sendBtn = document.getElementById('sendMessageBtn');
+    const msgInput = document.getElementById('messageInput');
+    const chatHistory = document.getElementById('chatHistory');
+
+    function sendMessage() {
+        const text = msgInput.value.trim();
+        if (text === '') return;
+
+        const now = new Date();
+        let hours = now.getHours();
+        let minutes = now.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; 
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+        const timeString = hours + ':' + minutes + ' ' + ampm;
+
+        const msgHTML = `
+            <div class="message-wrapper sent">
+                <div class="message bubble">
+                    ${text}
+                </div>
+                <span class="msg-time">${timeString}</span>
+            </div>
+        `;
+
+        chatHistory.innerHTML += msgHTML;
+
+        msgInput.value = '';
+
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    if (sendBtn && msgInput && chatHistory) {
+        
+        sendBtn.addEventListener('click', sendMessage);
+
+        msgInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+});
+
+    const fileInput = document.getElementById('itemPhotos');
+    const previewContainer = document.getElementById('previewContainer');
+    const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+
+    if (fileInput && previewContainer) {
+        fileInput.addEventListener('change', function() {
+            const files = this.files;
+            
+            previewContainer.innerHTML = '';
+
+            if (files.length > 0) {
+                uploadPlaceholder.style.display = 'none';
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    if (file.type.match('image.*')) {
+                        const reader = new FileReader();
+
+                        reader.onload = function(e) {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.classList.add('image-preview');
+                            previewContainer.appendChild(img);
+                        }
+
+                        reader.readAsDataURL(file);
+                    }
+                }
+            } else {
+                uploadPlaceholder.style.display = 'flex';
+            }
+        });
+    }
