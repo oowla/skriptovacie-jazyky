@@ -1,54 +1,31 @@
 <?php
 session_start();
-
-$host = 'localhost';
-$dbname = 'php_projekt';
-$username = 'root';
-$password = '';
+require_once 'classes/Database.php';
+require_once 'classes/User.php';
+require_once 'components/Footer.php';
 
 $error_message = '';
 $success_message = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $user = trim($_POST['username']);
-    $email = trim($_POST['email']);
-    $pass = $_POST['password'];
+    $db = (new Database())->getConnection();
+    $userClass = new User($db);
 
-    try {
-        $conn = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
-        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $result = $userClass->register(trim($_POST['username']), trim($_POST['email']), $_POST['password']);
 
-        $stmt_check = $conn->prepare("SELECT id FROM users WHERE email = :email");
-        $stmt_check->bindParam(':email', $email);
-        $stmt_check->execute();
-
-        if ($stmt_check->rowCount() > 0) {
-            $error_message = "Tento email už je zaregistrovaný.";
-        } else {
-            $hashed_password = password_hash($pass, PASSWORD_DEFAULT);
-
-            $stmt = $conn->prepare("INSERT INTO users (username, email, password_hash) VALUES (:username, :email, :password_hash)");
-            $stmt->bindParam(':username', $user);
-            $stmt->bindParam(':email', $email);
-            $stmt->bindParam(':password_hash', $hashed_password);
-            
-            $stmt->execute();
-            
-            $success_message = "Účet bol úspešne vytvorený! Môžeš sa prihlásiť.";
-        }
-
-    } catch(PDOException $e) {
-        $error_message = "Chyba databázy: " . $e->getMessage();
+    if ($result === "success") {
+        $success_message = "Account has been successfully created! You can log in.";
+    } else {
+        $error_message = $result;
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Sign Up | Nocturne</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="../styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 </head>
 <body class="auth-body">
@@ -104,6 +81,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         </div>
     </main>
+
+    <?php (new Footer())->render(); ?>
 
 </body>
 </html>

@@ -1,153 +1,29 @@
-const products = [
-    {
-        id: 1,
-        brand: "Vintage Leather",
-        price: "$85.00",
-        size: "M / 38",
-        image: "images/leather_jacket.jpg"
-    },
-    {
-        id: 2,
-        brand: "Dr. Martens",
-        price: "$70.00",
-        size: "UK 8 / EU 42",
-        image: "images/drmartens.jpg"
-    },
-    {
-        id: 3,
-        brand: "Lip Service top",
-        price: "$35.00",
-        size: "S / 34",
-        image: "images/lip_service.jpg"
-    },
-    {
-        id: 4,
-        brand: "Distressed Denim",
-        price: "$35.00",
-        size: "W30 L32",
-        image: "images/pants.jpg"
-    },
-    {
-        id: 5,
-        brand: "Killstar",
-        price: "$20.00",
-        size: "S / 36",
-        image: "images/killstar.jpg"
-    },
-    {
-        id: 6,
-        brand: "Short dress",
-        price: "$25.00",
-        size: "L / 40",
-        image: "images/dress.jpg"
-    }
-];
-
-function renderProducts() {
-    const productGrid = document.getElementById('productGrid');
-    
-    products.forEach(product => {
-        const productHTML = `
-            <div class="product-card">
-                <div class="product-image-wrapper">
-                    <img src="${product.image}" alt="${product.brand}">
-                    <button class="btn-favorite" onclick="toggleFavorite(this)">
-                        <i class="fa-solid fa-heart"></i>
-                    </button>
-                </div>
-                <div class="product-info">
-                    <div class="product-brand">${product.brand}</div>
-                    <div class="product-details">
-                        <span class="product-price">${product.price}</span>
-                        <span class="product-size">${product.size}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-        productGrid.innerHTML += productHTML;
-    });
-}
-
-function toggleFavorite(button) {
+function toggleFavorite(button, itemId) {
+    event.preventDefault(); 
     event.stopPropagation(); 
-    
-    button.classList.toggle('active');
+
+    fetch('toggle_like.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ item_id: itemId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'not_logged_in') {
+            window.location.href = 'login.php';
+        } else if (data.status === 'liked') {
+            button.classList.add('active');
+        } else if (data.status === 'unliked') {
+            button.classList.remove('active');
+        }
+    })
+    .catch(error => console.error('Error:', error));
 }
 
-window.onload = renderProducts;
-
 document.addEventListener('DOMContentLoaded', () => {
     
-    const dropdownToggle = document.getElementById('categoriesToggle');
-    const dropdownMenu = document.getElementById('categoriesMenu');
-
-    if (dropdownToggle && dropdownMenu) {
-        dropdownToggle.addEventListener('click', function(event) {
-            event.preventDefault();
-            dropdownMenu.classList.toggle('show');
-        });
-
-        document.addEventListener('click', function(event) {
-            const isClickInside = dropdownToggle.contains(event.target) || dropdownMenu.contains(event.target);
-            
-            if (!isClickInside) {
-                dropdownMenu.classList.remove('show');
-            }
-        });
-    }
-
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    const sendBtn = document.getElementById('sendMessageBtn');
-    const msgInput = document.getElementById('messageInput');
-    const chatHistory = document.getElementById('chatHistory');
-
-    function sendMessage() {
-        const text = msgInput.value.trim();
-        if (text === '') return;
-
-        const now = new Date();
-        let hours = now.getHours();
-        let minutes = now.getMinutes();
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12; 
-        minutes = minutes < 10 ? '0' + minutes : minutes;
-        const timeString = hours + ':' + minutes + ' ' + ampm;
-
-        const msgHTML = `
-            <div class="message-wrapper sent">
-                <div class="message bubble">
-                    ${text}
-                </div>
-                <span class="msg-time">${timeString}</span>
-            </div>
-        `;
-
-        chatHistory.innerHTML += msgHTML;
-
-        msgInput.value = '';
-
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-    }
-
-    if (sendBtn && msgInput && chatHistory) {
-        
-        sendBtn.addEventListener('click', sendMessage);
-
-        msgInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-    }
-
-});
-
     const fileInput = document.getElementById('itemPhotos');
     const previewContainer = document.getElementById('previewContainer');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
@@ -182,3 +58,170 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+});
+
+let currentImageIndex = 0;
+let fullscreenImageIndex = 0;
+let zoomLevel = 1;
+let panX = 0, panY = 0;
+let isDragging = false;
+let dragStartX = 0, dragStartY = 0, dragStartPanX = 0, dragStartPanY = 0;
+
+function showImage(index) {
+    const images = document.querySelectorAll('.gallery-image');
+    if (images.length === 0) return;
+    
+    images.forEach(img => img.style.display = 'none');
+    images[index].style.display = 'block';
+    
+    const dots = document.querySelectorAll('.gallery-dot');
+    dots.forEach((dot, i) => {
+        dot.style.background = i === index ? 'white' : 'rgba(255,255,255,0.5)';
+    });
+}
+
+function nextImage() {
+    const total = document.querySelectorAll('.gallery-image').length;
+    currentImageIndex = (currentImageIndex + 1) % total;
+    showImage(currentImageIndex);
+}
+
+function prevImage() {
+    const total = document.querySelectorAll('.gallery-image').length;
+    currentImageIndex = (currentImageIndex - 1 + total) % total;
+    showImage(currentImageIndex);
+}
+
+function goToImage(index) {
+    currentImageIndex = index;
+    showImage(currentImageIndex);
+}
+
+function openFullscreen(index) {
+    fullscreenImageIndex = index;
+    resetZoom();
+    document.getElementById('fullscreenModal').style.display = 'flex';
+    updateFullscreenImage();
+}
+
+function closeFullscreen() {
+    document.getElementById('fullscreenModal').style.display = 'none';
+    resetZoom();
+}
+
+function updateFullscreenImage() {
+    if (typeof fullscreenImages === 'undefined' || fullscreenImages.length === 0) return;
+    
+    const img = document.getElementById('fullscreenImage');
+    img.src = fullscreenImages[fullscreenImageIndex];
+    
+    const counter = document.getElementById('imageCounter');
+    if (counter) {
+        counter.textContent = `${fullscreenImageIndex + 1} / ${fullscreenImages.length}`;
+    }
+    resetPan();
+}
+
+function fullscreenNextImage() {
+    fullscreenImageIndex = (fullscreenImageIndex + 1) % fullscreenImages.length;
+    updateFullscreenImage();
+}
+
+function fullscreenPrevImage() {
+    fullscreenImageIndex = (fullscreenImageIndex - 1 + fullscreenImages.length) % fullscreenImages.length;
+    updateFullscreenImage();
+}
+
+function zoomIn() {
+    zoomLevel = Math.min(zoomLevel + 0.1, 5);
+    applyTransform();
+    updateZoomDisplay();
+}
+
+function zoomOut() {
+    zoomLevel = Math.max(zoomLevel - 0.1, 1);
+    applyTransform();
+    updateZoomDisplay();
+}
+
+function resetZoom() {
+    zoomLevel = 1;
+    resetPan();
+    applyTransform();
+    updateZoomDisplay();
+}
+
+function updateZoomDisplay() {
+    const zl = document.getElementById('zoomLevel');
+    if(zl) zl.textContent = Math.round(zoomLevel * 100) + '%';
+}
+
+function resetPan() {
+    panX = 0;
+    panY = 0;
+}
+
+function applyTransform() {
+    const img = document.getElementById('fullscreenImage');
+    if(!img) return;
+    img.style.transform = `scale(${zoomLevel}) translate(${panX}px, ${panY}px)`;
+    img.style.cursor = zoomLevel > 1 ? 'grab' : 'default';
+}
+
+function startDrag(e) {
+    if (zoomLevel <= 1) return;
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragStartPanX = panX;
+    dragStartPanY = panY;
+    document.getElementById('fullscreenImage').style.cursor = 'grabbing';
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', stopDrag);
+}
+
+function onDrag(e) {
+    if (!isDragging) return;
+    panX = dragStartPanX + (e.clientX - dragStartX) / zoomLevel;
+    panY = dragStartPanY + (e.clientY - dragStartY) / zoomLevel;
+    applyTransform();
+}
+
+function stopDrag() {
+    isDragging = false;
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', stopDrag);
+    const img = document.getElementById('fullscreenImage');
+    if(img) img.style.cursor = 'grab';
+}
+
+document.addEventListener('wheel', (e) => {
+    const modal = document.getElementById('fullscreenModal');
+    if (modal && modal.style.display === 'flex') {
+        e.preventDefault();
+        if (e.deltaY < 0) zoomIn();
+        else zoomOut();
+    }
+}, { passive: false });
+
+document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('fullscreenModal');
+    if (modal && modal.style.display === 'flex') {
+        if (e.key === 'ArrowRight') fullscreenNextImage();
+        if (e.key === 'ArrowLeft') fullscreenPrevImage();
+        if (e.key === 'Escape') closeFullscreen();
+        if (e.key === '+' || e.key === '=') zoomIn();
+        if (e.key === '-') zoomOut();
+        if (e.key === '0') resetZoom();
+    } else {
+        if (document.querySelectorAll('.gallery-image').length > 1) {
+            if (e.key === 'ArrowRight') nextImage();
+            if (e.key === 'ArrowLeft') prevImage();
+        }
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'fullscreenModal') closeFullscreen();
+});

@@ -1,39 +1,20 @@
 <?php
 session_start();
-
-$host = 'localhost';
-$dbname = 'php_projekt';
-$username = 'root';
-$password = '';
+require_once 'classes/Database.php';
+require_once 'classes/User.php';
+require_once 'components/Footer.php';
 
 $error_message = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = trim($_POST['email']);
-    $pass = $_POST['password'];
+    $db = (new Database())->getConnection();
+    $userClass = new User($db);
 
-    try {
-        $conn = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
-        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $stmt = $conn->prepare("SELECT id, email, password_hash, username FROM users WHERE email = :email");
-        $stmt->bindParam(':email', $email);
-        $stmt->execute();
-
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($user && password_verify($pass, $user['password_hash'])) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            
-            header("Location: index.php");
-            exit();
-        } else {
-            $error_message = "Nesprávny email alebo heslo.";
-        }
-
-    } catch(PDOException $e) {
-        $error_message = "Chyba databázy: " . $e->getMessage();
+    if ($userClass->login(trim($_POST['email']), $_POST['password'])) {
+        header("Location: index.php");
+        exit();
+    } else {
+        $error_message = "Wrong email or password. Please try again.";
     }
 }
 ?>
@@ -44,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log In | Nocturne</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="../styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 </head>
 <body class="auth-body">
@@ -86,10 +67,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <div class="auth-links">
                 <p>Don't have an account? <a href="register.php">Sign up here</a>.</p>
-                <p><a href="#">Forgot your password?</a></p>
+                <a href="forgot_password.php">Forgot your password?</a>
             </div>
         </div>
     </main>
+
+    <?php (new Footer())->render(); ?>
 
 </body>
 </html>
