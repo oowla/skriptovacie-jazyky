@@ -164,5 +164,20 @@ class Item {
         $stmt->execute([':seller_id' => $seller_id]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function toggleLike($user_id, $item_id) {
+        $stmt = $this->conn->prepare("SELECT id FROM likes WHERE user_id = :uid AND item_id = :iid");
+        $stmt->execute([':uid' => $user_id, ':iid' => $item_id]);
+
+        if ($stmt->rowCount() > 0) {
+            $this->conn->prepare("DELETE FROM likes WHERE user_id = :uid AND item_id = :iid")
+                 ->execute([':uid' => $user_id, ':iid' => $item_id]);
+            return 'unliked';
+        } else {
+            $this->conn->prepare("INSERT INTO likes (user_id, item_id) VALUES (:uid, :iid)")
+                 ->execute([':uid' => $user_id, ':iid' => $item_id]);
+            return 'liked';
+        }
+    }
 }
 ?>
