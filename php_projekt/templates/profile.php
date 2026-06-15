@@ -50,17 +50,6 @@ $fake_locations = ["London, UK", "Berlin, Germany", "Prague, CZ", "Underworld", 
 $fake_location = $fake_locations[$profile_id % count($fake_locations)];
 $fake_joined = date('F Y', strtotime('-' . ($profile_id * 3) . ' months'));
 
-function renderStars($rating) {
-    $stars = '';
-    for ($i = 1; $i <= 5; $i++) {
-        if ($i <= $rating) {
-            $stars .= '★';
-        } else {
-            $stars .= '☆';
-        }
-    }
-    return $stars;
-}
 ?>
 
 <!DOCTYPE html>
@@ -163,7 +152,7 @@ function renderStars($rating) {
             <?php if (count($reviews) > 0): ?>
                 <?php foreach ($reviews as $review): ?>
                     <div class="review-card">
-                        <div class="review-stars"><?php echo renderStars($review['rating']); ?></div>
+                        <div class="review-stars"><?php echo $userClass->renderStars($review['rating']); ?></div>
                         <?php if (!empty($review['comment'])): ?>
                             <p class="review-text">"<?php echo htmlspecialchars($review['comment']); ?>"</p>
                         <?php else: ?>

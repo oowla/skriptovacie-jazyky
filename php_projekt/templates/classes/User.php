@@ -90,6 +90,18 @@ class User {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function renderStars($rating) {
+        $stars = '';
+        for ($i = 1; $i <= 5; $i++) {
+            if ($i <= $rating) {
+                $stars .= '★';
+            } else {
+                $stars .= '☆';
+            }
+        }
+        return $stars;
+    }
+
     public function deleteAccount($user_id) {
         try {
             $this->conn->beginTransaction();
